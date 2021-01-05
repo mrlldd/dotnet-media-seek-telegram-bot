@@ -3,15 +3,32 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
-    </PropertyGroup>
+      <UserSecretsId>a63d0db0-9ac8-43ec-9f9c-0831f0935525</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="ApplicationConfig.fs" />
+        <Compile Include="Utils.fs" />
+        <Compile Include="Restful.fs" />
+        <Compile Include="TelegramBot.fs" />
+        <Content Include="appsettings.json">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="appsettings.development.json">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
         <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="FsConfig" Version="2.1.6" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
+      <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
       <PackageReference Include="Suave" Version="2.6.0" />
       <PackageReference Include="Telegram.Bot" Version="15.7.1" />
+      <PackageReference Include="TypeShape" Version="9.0.0" />
     </ItemGroup>
 
 </Project>
