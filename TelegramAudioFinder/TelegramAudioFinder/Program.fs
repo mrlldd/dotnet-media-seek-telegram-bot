@@ -2,6 +2,7 @@
 
 open System
 open System.Threading
+open System.Threading.Tasks
 open Newtonsoft.Json
 open Suave
 open Filters
@@ -9,6 +10,7 @@ open Successful
 open Operators
 open Telegram.Bot.Types
 open Telegram.Bot.Types.Enums
+open Telegram.Bot.Types.InlineQueryResults
 open TelegramAudioFinder
 open Utils
 open TelegramBot
@@ -28,12 +30,13 @@ let defaultHandler (r: HttpRequest) =
 let telegramEndpoint = "/api/telegram"
 
 let handler (update: Update) =
+    fun ctx -> async {
+        
+        do! bot.AnswerInlineQueryAsync(update.InlineQuery.Id, [])
+            |> Async.AwaitTask
 
-    bot.AnswerInlineQueryAsync(update.InlineQuery.Id, [])
-    |> Async.AwaitTask
-    |> ignore
-
-    OK String.Empty
+        return! OK String.Empty ctx
+    }
 
 let startupAsync (cts: CancellationTokenSource) =
     let conf =
