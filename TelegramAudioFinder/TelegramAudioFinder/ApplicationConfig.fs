@@ -4,13 +4,19 @@ type TelegramConfig = {
     Token: string
     WebhookUrl: string
     MaxConnections: int
+    DeveloperChatId: int
 }
 
-type Keys = {
-    Youtube: string
+type YouTubeConfig = {
+    AppName: string
+    Key: string
+}
+
+type Services = {
+    Youtube: YouTubeConfig
 }
 
 type ApplicationConfig = {
     Telegram: TelegramConfig
-    Keys: Keys
+    Services: Services
 }
