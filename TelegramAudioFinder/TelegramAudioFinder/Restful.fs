@@ -10,4 +10,4 @@ let rest handler (req: HttpRequest) =
     |> fromJson
     |> handler
     
-let restful handler = request (rest handler)
+let restful handler = rest handler |> request 

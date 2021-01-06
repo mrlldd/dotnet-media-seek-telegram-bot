@@ -1,10 +1,7 @@
 ﻿module TelegramAudioFinder.TelegramBot
 
 open System
-open System.Threading.Tasks
 open Google
-open Google.Apis.Requests
-open Google.Apis.Requests
 open Google.Apis.Services
 open Google.Apis.Util
 open Google.Apis.YouTube.v3
@@ -61,8 +58,8 @@ let private pageLength = 10
 
 let private youtubeContinuationTokensCache = createInMemoryCache cacheTimeout
 
-let private sendInlineQueryResultAsync (queryId, offset, keyFactory, youtubeResponse: SearchListResponse) =
-    youtubeContinuationTokensCache.Set(offset |> keyFactory, youtubeResponse.NextPageToken)
+let private sendInlineQueryResultAsync (queryId, offset: int, keyFactory, youtubeResponse: SearchListResponse) =
+    youtubeContinuationTokensCache.Set ((offset |> keyFactory), youtubeResponse.NextPageToken)
 
     printfn "%s" (json (youtubeResponse, Formatting.Indented))
 
@@ -99,7 +96,9 @@ let updateAsyncHandler token (update: Update) =
 
             let keyFactory = sprintf "%s;%i" inlineQuery.Query
 
-            match youtubeContinuationTokensCache.TryRetrieve((offset - pageLength) |> keyFactory) with
+            match (offset - pageLength)
+                  |> keyFactory
+                  |> youtubeContinuationTokensCache.TryRetrieve with
             | Some res -> list.PageToken <- res
             | _ -> ()
 
@@ -108,7 +107,10 @@ let updateAsyncHandler token (update: Update) =
             list.MaxResults <- pageLength |> int64
             list.RelevanceLanguage <- inlineQuery.From.LanguageCode
 
-            let! result = Async.Catch(list.ExecuteAsync(token) |> Async.AwaitTask)
+            let! result =
+                list.ExecuteAsync(token)
+                |> Async.AwaitTask
+                |> Async.Catch
 
             do! match result with
                 | Choice1Of2 success -> sendInlineQueryResultAsync (inlineQuery.Id, offset, keyFactory, success)

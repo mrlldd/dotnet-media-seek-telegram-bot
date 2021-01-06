@@ -1,7 +1,6 @@
 ﻿module TelegramAudioFinder.Program
 
 open System
-open System.Threading
 open Suave
 open Operators
 open TelegramAudioFinder

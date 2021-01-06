@@ -23,7 +23,7 @@ let startupAsync cancellationToken =
               cancellationToken = cancellationToken }
 
     printfn "Starting up..."
-    printfn "%s" (json (applicationConfig, Formatting.Indented))
+    printfn "%s" ((applicationConfig, Formatting.Indented) |> json)
 
     let telegramConfig = applicationConfig.Telegram
 
