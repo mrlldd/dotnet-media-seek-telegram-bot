@@ -3,14 +3,17 @@
 open System
 open System.Collections.Generic
 open System.IO
+open System.Threading
 open FsConfig
 open Microsoft.Extensions.Configuration
 open Newtonsoft.Json
 open Newtonsoft.Json.Serialization
 
+let cts = new CancellationTokenSource()
+
 let json (obj, (format: Formatting)) = JsonConvert.SerializeObject(obj, format)
 
-let snakeCaseSerializerSettings =
+let private snakeCaseSerializerSettings =
     let resolver = DefaultContractResolver()
     resolver.NamingStrategy <- SnakeCaseNamingStrategy()
     let settings = JsonSerializerSettings()
@@ -33,11 +36,11 @@ let cacheInMemory func =
 let getEnvironmentVariable =
     cacheInMemory Environment.GetEnvironmentVariable
                     
-let rawConfig =
+let private rawConfig =
     ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
-        .AddJsonFile("appsettings.json", reloadOnChange = true, optional = false)
-        .AddJsonFile(sprintf "appsettings.%s.json" (getEnvironmentVariable "environment"), optional = true)
+        .AddJsonFile("appsettings.json", false, true)
+        .AddJsonFile(sprintf "appsettings.%s.json" (getEnvironmentVariable "environment"), true)
         .AddUserSecrets<ApplicationConfig>()
         .AddEnvironmentVariables()
         .Build()

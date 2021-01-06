@@ -17,11 +17,13 @@
         <Content Include="appsettings.development.json">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+        <Compile Include="Startup.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="FsConfig" Version="2.1.6" />
+      <PackageReference Include="FSharp.Data" Version="3.3.3" />
       <PackageReference Include="Google.Apis.YouTube.v3" Version="1.49.0.2181" />
       <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
