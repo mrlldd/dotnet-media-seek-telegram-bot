@@ -6,6 +6,11 @@ type TelegramConfig = {
     MaxConnections: int
 }
 
+type Keys = {
+    Youtube: string
+}
+
 type ApplicationConfig = {
     Telegram: TelegramConfig
+    Keys: Keys
 }
