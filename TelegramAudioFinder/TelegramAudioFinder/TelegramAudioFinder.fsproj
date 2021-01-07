@@ -11,14 +11,14 @@
         <Compile Include="Utils.fs" />
         <Compile Include="Restful.fs" />
         <Compile Include="TelegramBot.fs" />
+        <Compile Include="Startup.fs" />
+        <Compile Include="Program.fs" />
         <Content Include="appsettings.json">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Content Include="appsettings.development.json">
+        <Content Include="appsettings.Development.json">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Compile Include="Startup.fs" />
-        <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -29,6 +29,7 @@
       <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+      <PackageReference Include="SoundCloud.Api" Version="3.0.0" />
       <PackageReference Include="Suave" Version="2.6.0" />
       <PackageReference Include="Telegram.Bot" Version="15.7.1" />
       <PackageReference Include="TypeShape" Version="9.0.0" />
