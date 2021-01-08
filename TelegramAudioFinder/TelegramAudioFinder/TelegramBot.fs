@@ -2,13 +2,6 @@
 
 open System
 open System.Net
-open System.Text
-open System.Threading
-open Google
-open Google.Apis.Services
-open Google.Apis.Util
-open Google.Apis.YouTube.v3
-open Google.Apis.YouTube.v3.Data
 open Microsoft.FSharp.Collections
 open Newtonsoft.Json
 open SoundCloud.Api
@@ -17,20 +10,12 @@ open Successful
 open Telegram.Bot
 open Telegram.Bot.Types
 open Telegram.Bot.Types.InlineQueryResults
-open Utils
-open FSharp.Data.Runtime.Caching
+open TelegramAudioFinder.YouTubeSearch
+open TelegramAudioFinder.Utils
+open TelegramAudioFinder.Services.Utils
 
 let bot =
     TelegramBotClient(applicationConfig.Telegram.Token)
-
-let private cacheTimeout = TimeSpan.FromMinutes(1 |> float)
-
-let private service =
-    let youTubeConfig = applicationConfig.Services.Youtube
-    let init = BaseClientService.Initializer()
-    init.ApiKey <- youTubeConfig.Key
-    init.ApplicationName <- youTubeConfig.AppName
-    new YouTubeService(init)
 
 let private curryingAnswerSender queryId offset items =
     bot.AnswerInlineQueryAsync
@@ -44,40 +29,16 @@ let private curryingAnswerSender queryId offset items =
 [<Literal>]
 let private thumbSideSize = 100
 
-let private youtubeItemsMapper offset (index, item: SearchResult) =
-    let snippet = item.Snippet
-
-    let url =
-        sprintf "https://youtube.com/watch?v=%s" item.Id.VideoId
-
+let searchResultsMapper (offset: int) (index, item: UnifiedSearchResult) =
     let res =
         InlineQueryResultArticle
-            ((index + offset) |> string, snippet.Title |> WebUtility.HtmlDecode, InputTextMessageContent(url))
+            ((index + offset) |> string, item.Title |> WebUtility.HtmlDecode, InputTextMessageContent(item.Url))
 
-    res.Description <- snippet.Description
-    res.ThumbUrl <- snippet.Thumbnails.Default__.Url
+    res.ThumbUrl <- item.ThumbUrl
+    res.Description <- item.Description
     res.ThumbHeight <- thumbSideSize
     res.ThumbWidth <- thumbSideSize
     res :> InlineQueryResultBase
-
-let private optional s =
-    if String.IsNullOrEmpty(s) then None else Some s
-
-[<Literal>]
-let private pageLength = 10
-
-let private youtubeContinuationTokensCache = createInMemoryCache cacheTimeout
-
-let private sendInlineQueryResultAsync (queryId, offset: int, youtubeItems: SearchResult list) =
-    youtubeItems
-    |> Seq.indexed
-    |> Seq.map (youtubeItemsMapper offset)
-    |> curryingAnswerSender queryId offset
-
-let private responseIsForbidden (ex: exn) =
-    match ex.InnerException with
-    | :? GoogleApiException as apiException -> apiException.Error.Code = 403
-    | _ -> false
 
 let private sendErrorToDeveloperAsync (inlineQuery, error) =
     bot.SendTextMessageAsync
@@ -89,56 +50,17 @@ let private sendErrorToDeveloperAsync (inlineQuery, error) =
     |> Async.Ignore
 
 
-let private finder (inlineQuery: InlineQuery, token) =
-    async {
-        let list =
-            [ "snippet" ] |> Repeatable |> service.Search.List
-
-        let offset =
-            match String.IsNullOrEmpty(inlineQuery.Offset) with
-            | true -> 0
-            | false -> inlineQuery.Offset |> int
-
-        let keyFactory = sprintf "%s;%i" inlineQuery.Query
-
-        match offset
-              |> keyFactory
-              |> youtubeContinuationTokensCache.TryRetrieve with
-        | Some res -> list.PageToken <- res
-        | _ -> ()
-
-        list.Q <- inlineQuery.Query
-        list.Type <- [ "video" ] |> Repeatable
-        list.MaxResults <- pageLength |> int64
-        list.RelevanceLanguage <- inlineQuery.From.LanguageCode
-
-        let! result =
-            list.ExecuteAsync(token)
-            |> Async.AwaitTask
-            |> Async.Catch
-
-        let nextPageOffset = offset + pageLength
-
-        let curriedSender x =
-            sendInlineQueryResultAsync (inlineQuery.Id, nextPageOffset, x)
-            |> Async.Ignore
-
-        do! match result with
-            | Choice1Of2 success ->
-                youtubeContinuationTokensCache.Set(keyFactory nextPageOffset, success.NextPageToken)
-                success.Items |> Seq.toList |> curriedSender
-            | Choice2Of2 error ->
-                [ (sendErrorToDeveloperAsync (inlineQuery, error))
-                  (curriedSender []) ]
-                |> Async.Sequential
-                |> Async.Ignore
-    }
-
 [<Literal>]
 let private minimumKeywordLength = 3
 
 let private helpDescription =
-    $"/?h or /?help for help\nMinimum keyword length: {minimumKeywordLength}"
+    "/?h or /?help for help\n"
+    + "/?y or /?youtube for search with YouTube\n"
+    + "/?s or /?soundcloud for search with SoundCloud\n"
+    + "/?a or /?all for search with all available services\n"
+    + "Example: /?a astrothunder\n"
+    + "Query without arguments will perform search in all available services by default.\n"
+    + $"Minimum keyword length: {minimumKeywordLength}"
 
 let private helpAsync (inlineQuery: InlineQuery, token) =
     let article =
@@ -196,11 +118,20 @@ let private readQuery (inlineQuery: InlineQuery) =
             | search -> search, modifyQueryString (inlineQuery, keywords)
         | _ -> Search All, inlineQuery
 
-let private dispatchSearchAsync (search, query: InlineQuery, token) =
+let private dispatchSearchAsync (search, offset, query: InlineQuery, token) =
     match search with
     | YouTube
-    | All -> finder (query, token)
-    | SoundCloud -> Async.Sleep 0
+    | All -> youTubeSearch (offset, query, token)
+    | SoundCloud -> async { return Ok Seq.empty }
+
+let private sendResultsAsync offset (inlineQuery: InlineQuery) (result: Result<seq<UnifiedSearchResult>, exn>) =
+    match result with
+    | Ok success ->
+        success
+        |> Seq.indexed
+        |> Seq.map (searchResultsMapper offset)
+        |> curryingAnswerSender inlineQuery.Id (offset + pageLength)
+    | Error error -> sendErrorToDeveloperAsync (inlineQuery, error)
 
 let private sendWrongCommandResponseAsync (queryId: string, command) =
     let message = sprintf "Wrong command: %s." command
@@ -216,7 +147,16 @@ let private sendWrongCommandResponseAsync (queryId: string, command) =
 let private dispatchAsync (inlineQuery: InlineQuery, token) =
     match readQuery inlineQuery with
     | (Help, q) -> helpAsync (q, token)
-    | (Search s, modifiedInlineQuery) -> dispatchSearchAsync (s, modifiedInlineQuery, token)
+    | (Search s, modifiedInlineQuery) ->
+        async {
+            let offset =
+                match String.IsNullOrEmpty(modifiedInlineQuery.Offset) with
+                | true -> 0
+                | false -> modifiedInlineQuery.Offset |> int
+
+            let! res = dispatchSearchAsync (s, offset, modifiedInlineQuery, token)
+            do! sendResultsAsync offset inlineQuery res
+        }
     | (Wrong w, q) -> sendWrongCommandResponseAsync (q.Id, w)
 
 let updateAsyncHandler token (update: Update) =
@@ -224,11 +164,10 @@ let updateAsyncHandler token (update: Update) =
         async {
             let inlineQuery = update.InlineQuery
 
-            do! if inlineQuery.Query.Length >= minimumKeywordLength then
-                    dispatchAsync (inlineQuery, token)
-                else
-                    bot.AnswerInlineQueryAsync(inlineQuery.Id, [], 3600, cancellationToken = token)
-                    |> Async.AwaitTask
+            do! (inlineQuery, token)
+                |> if inlineQuery.Query.Length >= minimumKeywordLength
+                   then dispatchAsync
+                   else helpAsync
 
             return! OK String.Empty ctx
         }

@@ -12,11 +12,11 @@ type YouTubeConfig = {
     Key: string
 }
 
-type Services = {
+type ServicesConfig = {
     Youtube: YouTubeConfig
 }
 
 type ApplicationConfig = {
     Telegram: TelegramConfig
-    Services: Services
+    Services: ServicesConfig
 }

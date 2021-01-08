@@ -7,18 +7,21 @@
   </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="ApplicationConfig.fs" />
-        <Compile Include="Utils.fs" />
-        <Compile Include="Restful.fs" />
-        <Compile Include="TelegramBot.fs" />
-        <Compile Include="Startup.fs" />
-        <Compile Include="Program.fs" />
         <Content Include="appsettings.json">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Include="appsettings.Development.json">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+        <Compile Include="ApplicationConfig.fs" />
+        <Compile Include="UnifiedSearchResult.fs" />
+        <Compile Include="Utilities\Utils.fs" />
+        <Compile Include="Utilities\ServicesUtils.fs" />
+        <Compile Include="YouTubeSearch.fs" />
+        <Compile Include="TelegramBot.fs" />
+        <Compile Include="Restful.fs" />
+        <Compile Include="Startup.fs" />
+        <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
