@@ -12,8 +12,13 @@ type YouTubeConfig = {
     Key: string
 }
 
+type SoundCloudConfig = {
+    ClientId: string
+}
+
 type ServicesConfig = {
-    Youtube: YouTubeConfig
+    YouTube: YouTubeConfig
+    SoundCloud: SoundCloudConfig
 }
 
 type ApplicationConfig = {
