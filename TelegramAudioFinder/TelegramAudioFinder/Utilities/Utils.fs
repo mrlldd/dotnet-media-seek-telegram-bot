@@ -54,3 +54,10 @@ let applicationConfig =
         | NotFound envVarName -> failwithf "Environment variable %s not found" envVarName
         | BadValue (envVarName, value) -> failwithf "Environment variable %s - %s has invalid value" envVarName value
         | NotSupported msg -> failwith msg
+
+let bindAsync (af: _ -> Async<_>) (r: Result<_, _>) =
+    async {
+        match r with
+        | Ok ok -> return! af (ok)
+        | Error e -> return Error e
+    }
