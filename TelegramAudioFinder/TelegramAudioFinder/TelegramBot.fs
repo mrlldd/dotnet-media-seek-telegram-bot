@@ -4,13 +4,13 @@ open System
 open System.Net
 open Microsoft.FSharp.Collections
 open Newtonsoft.Json
-open SoundCloud.Api
 open Suave
 open Successful
 open Telegram.Bot
 open Telegram.Bot.Types
 open Telegram.Bot.Types.InlineQueryResults
-open TelegramAudioFinder.YouTubeSearch
+open TelegramAudioFinder.Search.SoundCloud
+open TelegramAudioFinder.Search.YouTube
 open TelegramAudioFinder.Utils
 open TelegramAudioFinder.Services.Utils
 
@@ -18,11 +18,13 @@ let bot =
     TelegramBotClient(applicationConfig.Telegram.Token)
 
 let private curryingAnswerSender queryId offset items =
+    printfn "%i" (offset)
+
     bot.AnswerInlineQueryAsync
         (queryId,
          items,
          nextOffset = (offset |> string),
-         cacheTime = cacheTimeout.Seconds,
+         cacheTime = defaultCacheTimeout.Seconds,
          cancellationToken = cts.Token)
     |> Async.AwaitTask
 
@@ -34,13 +36,19 @@ let searchResultsMapper (offset: int) (index, item: UnifiedSearchResult) =
         InlineQueryResultArticle
             ((index + offset) |> string, item.Title |> WebUtility.HtmlDecode, InputTextMessageContent(item.Url))
 
-    res.ThumbUrl <- item.ThumbUrl
-    res.Description <- item.Description
+    match item.ThumbUrl with
+    | Some s -> res.ThumbUrl <- s
+    | _ -> ()
+
+    match item.Description with
+    | Some s -> res.Description <- s
+    | _ -> ()
+
     res.ThumbHeight <- thumbSideSize
     res.ThumbWidth <- thumbSideSize
     res :> InlineQueryResultBase
 
-let private sendErrorToDeveloperAsync (inlineQuery, error) =
+let private sendErrorToDeveloperAsync (inlineQuery: InlineQuery, error: exn) =
     bot.SendTextMessageAsync
         (applicationConfig.Telegram.DeveloperChatId
          |> ChatId,
@@ -54,12 +62,14 @@ let private sendErrorToDeveloperAsync (inlineQuery, error) =
 let private minimumKeywordLength = 3
 
 let private helpDescription =
-    "/?h or /?help for help\n"
+    "Perform media search in services such as YouTube and SoundCloud\n"
+    + "Example: astrothunder\n"
+    + "/?h or /?help for help\n"
     + "/?y or /?youtube for search with YouTube\n"
     + "/?s or /?soundcloud for search with SoundCloud\n"
     + "/?a or /?all for search with all available services\n"
     + "Example: /?a astrothunder\n"
-    + "Query without arguments will perform search in all available services by default.\n"
+    + "Query without command arguments will perform search in all available services by default.\n"
     + $"Minimum keyword length: {minimumKeywordLength}"
 
 let private helpAsync (inlineQuery: InlineQuery, token) =
@@ -70,11 +80,6 @@ let private helpAsync (inlineQuery: InlineQuery, token) =
 
     bot.AnswerInlineQueryAsync(inlineQuery.Id, [ article ], 0, cancellationToken = token)
     |> Async.AwaitTask
-
-type private Service =
-    | YouTube
-    | SoundCloud
-    | All
 
 type private Command =
     | Help
@@ -93,6 +98,8 @@ let private readSearchQuery command =
     | "/?soundcloud" -> Search SoundCloud
     | "/?a"
     | "/?all" -> Search All
+    | "/?h"
+    | "/?help" -> Help
     | other -> Wrong other
 
 let private readQuery (inlineQuery: InlineQuery) =
@@ -110,27 +117,66 @@ let private readQuery (inlineQuery: InlineQuery) =
             queryString.Substring(0, index), queryString.Substring(index)
 
         match command with
-        | "/?h"
-        | "/?help" -> Help, inlineQuery
         | command when command.StartsWith("/?") ->
             match readSearchQuery command with
-            | Wrong w -> Wrong w, inlineQuery
+            | Wrong _
+            | Help -> Wrong command, inlineQuery
             | search -> search, modifyQueryString (inlineQuery, keywords)
         | _ -> Search All, inlineQuery
 
-let private dispatchSearchAsync (search, offset, query: InlineQuery, token) =
-    match search with
-    | YouTube
-    | All -> youTubeSearch (offset, query, token)
-    | SoundCloud -> async { return Ok Seq.empty }
+let private matcher: Map<Service, ServiceSearchArgument -> Async<ServiceSearchResult>> =
+    Map [ (YouTube, youTubeSearch)
+          (SoundCloud, soundCloudSearch) ]
 
-let private sendResultsAsync offset (inlineQuery: InlineQuery) (result: Result<seq<UnifiedSearchResult>, exn>) =
+
+let private searchInAllServicesAsync arg =
+    async {
+
+        let! values =
+            matcher
+            |> Seq.map (fun pair ->
+                async {
+                    let! res = pair.Value(arg)
+
+                    return
+                        res
+                        |> Result.bind (fun s ->
+                            s
+                            |> Seq.map (fun x ->
+                                { x with
+                                      Title = $"[{pair.Key}] {x.Title}" })
+                            |> Ok)
+                })
+            |> Async.Parallel
+
+        let (_, q, token) = arg
+
+        return
+            values
+            |> Seq.collect (fun x ->
+                match x with
+                | Ok ok -> ok
+                | Error error ->
+                    Async.Start(sendErrorToDeveloperAsync (q, error), token)
+                    Seq.empty)
+            |> Seq.sortByDescending (fun x -> x.PlayCount)
+            |> Ok
+    }
+
+
+let private dispatchSearchAsync search arg =
+    arg
+    |> match search with
+       | All -> searchInAllServicesAsync
+       | specific -> matcher.Item(specific)
+
+let private sendResultsAsync offset (inlineQuery: InlineQuery) (result: ServiceSearchResult) =
     match result with
     | Ok success ->
         success
         |> Seq.indexed
         |> Seq.map (searchResultsMapper offset)
-        |> curryingAnswerSender inlineQuery.Id (offset + pageLength)
+        |> (fun x -> curryingAnswerSender inlineQuery.Id (offset + Seq.length x) x)
     | Error error -> sendErrorToDeveloperAsync (inlineQuery, error)
 
 let private sendWrongCommandResponseAsync (queryId: string, command) =
@@ -150,11 +196,14 @@ let private dispatchAsync (inlineQuery: InlineQuery, token) =
     | (Search s, modifiedInlineQuery) ->
         async {
             let offset =
-                match String.IsNullOrEmpty(modifiedInlineQuery.Offset) with
-                | true -> 0
-                | false -> modifiedInlineQuery.Offset |> int
+                if String.IsNullOrEmpty(modifiedInlineQuery.Offset)
+                then 0
+                else modifiedInlineQuery.Offset |> int
 
-            let! res = dispatchSearchAsync (s, offset, modifiedInlineQuery, token)
+            let! res =
+                (offset, modifiedInlineQuery, token)
+                |> dispatchSearchAsync s
+
             do! sendResultsAsync offset inlineQuery res
         }
     | (Wrong w, q) -> sendWrongCommandResponseAsync (q.Id, w)

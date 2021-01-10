@@ -3,21 +3,22 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
-      <UserSecretsId>a63d0db0-9ac8-43ec-9f9c-0831f0935525</UserSecretsId>
-  </PropertyGroup>
+        <UserSecretsId>a63d0db0-9ac8-43ec-9f9c-0831f0935525</UserSecretsId>
+    </PropertyGroup>
 
     <ItemGroup>
         <Content Include="appsettings.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Include="appsettings.Development.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Compile Include="ApplicationConfig.fs" />
         <Compile Include="UnifiedSearchResult.fs" />
         <Compile Include="Utilities\Utils.fs" />
         <Compile Include="Utilities\ServicesUtils.fs" />
-        <Compile Include="YouTubeSearch.fs" />
+        <Compile Include="Search\SoundCloudSearch.fs" />
+        <Compile Include="Search\YouTubeSearch.fs" />
         <Compile Include="TelegramBot.fs" />
         <Compile Include="Restful.fs" />
         <Compile Include="Startup.fs" />
@@ -25,17 +26,17 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="FsConfig" Version="2.1.6" />
-      <PackageReference Include="FSharp.Data" Version="3.3.3" />
-      <PackageReference Include="Google.Apis.YouTube.v3" Version="1.49.0.2181" />
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
-      <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-      <PackageReference Include="SoundCloud.Api" Version="3.0.0" />
-      <PackageReference Include="Suave" Version="2.6.0" />
-      <PackageReference Include="Telegram.Bot" Version="15.7.1" />
-      <PackageReference Include="TypeShape" Version="9.0.0" />
+        <PackageReference Include="FsConfig" Version="2.1.6" />
+        <PackageReference Include="FSharp.Data" Version="3.3.3" />
+        <PackageReference Include="FSharp.Json" Version="0.4.0" />
+        <PackageReference Include="Google.Apis.YouTube.v3" Version="1.49.0.2181" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+        <PackageReference Include="Suave" Version="2.6.0" />
+        <PackageReference Include="Telegram.Bot" Version="15.7.1" />
+        <PackageReference Include="TypeShape" Version="9.0.0" />
     </ItemGroup>
 
 </Project>

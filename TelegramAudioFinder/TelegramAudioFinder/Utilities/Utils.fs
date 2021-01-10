@@ -20,7 +20,8 @@ let private snakeCaseSerializerSettings =
     settings.ContractResolver <- resolver
     settings
 
-let fromJson<'a> s = JsonConvert.DeserializeObject<'a>(s, snakeCaseSerializerSettings) 
+let fromJson<'a> s =
+    JsonConvert.DeserializeObject<'a>(s, snakeCaseSerializerSettings)
 
 let cacheInMemory func =
     let dictionary = Dictionary<_, _>()
@@ -35,7 +36,7 @@ let cacheInMemory func =
 
 let getEnvironmentVariable =
     cacheInMemory Environment.GetEnvironmentVariable
-                    
+
 let private rawConfig =
     ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
