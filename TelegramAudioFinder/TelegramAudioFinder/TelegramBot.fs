@@ -18,8 +18,6 @@ let bot =
     TelegramBotClient(applicationConfig.Telegram.Token)
 
 let private curryingAnswerSender queryId offset items =
-    printfn "%i" (offset)
-
     bot.AnswerInlineQueryAsync
         (queryId,
          items,
@@ -78,7 +76,7 @@ let private helpAsync (inlineQuery: InlineQuery, token) =
 
     article.Description <- helpDescription
 
-    bot.AnswerInlineQueryAsync(inlineQuery.Id, [ article ], 0, cancellationToken = token)
+    bot.AnswerInlineQueryAsync(inlineQuery.Id, [ article ], 3600, cancellationToken = token)
     |> Async.AwaitTask
 
 type private Command =
@@ -105,7 +103,6 @@ let private readSearchQuery command =
 let private readQuery (inlineQuery: InlineQuery) =
     let queryString = inlineQuery.Query
     let index = queryString.IndexOf(' ')
-
     if index = -1 then
         match queryString with
         | "/?h"
@@ -131,7 +128,6 @@ let private matcher: Map<Service, ServiceSearchArgument -> Async<ServiceSearchRe
 
 let private searchInAllServicesAsync arg =
     async {
-
         let! values =
             matcher
             |> Seq.map (fun pair ->
@@ -140,11 +136,11 @@ let private searchInAllServicesAsync arg =
 
                     return
                         res
-                        |> Result.bind (fun s ->
-                            s
-                            |> Seq.map (fun x ->
-                                { x with
-                                      Title = $"[{pair.Key}] {x.Title}" })
+                        |> Result.bind (fun sequence ->
+                            sequence
+                            |> Seq.map (fun item ->
+                                { item with
+                                      Title = $"[{pair.Key}] {item.Title}" })
                             |> Ok)
                 })
             |> Async.Parallel

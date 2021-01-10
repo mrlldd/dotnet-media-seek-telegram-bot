@@ -3,9 +3,8 @@
 open System
 open Suave
 open Operators
-open TelegramAudioFinder
-open Startup
-open Utils
+open TelegramAudioFinder.Startup
+open TelegramAudioFinder.Utils
 
 
 let isCtrlC (consoleKeyInfo: ConsoleKeyInfo) =
@@ -18,8 +17,7 @@ let rec untilCloseCombination closeCombination =
 
 [<EntryPoint>]
 let main _ =
-    let _, server = startupAsync cts.Token
-
+    let _, server = startupAsync cts.Token |> Async.RunSynchronously
     Async.Start(server, cts.Token)
     untilCloseCombination isCtrlC
     printfn "Shutting down..."

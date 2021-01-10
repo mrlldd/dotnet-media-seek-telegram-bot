@@ -2,7 +2,7 @@
 
 open System.Text
 open Suave
-open Utils
+open TelegramAudioFinder.Utils
 
 
 let rest handler (req: HttpRequest) =

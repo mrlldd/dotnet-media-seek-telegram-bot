@@ -27,20 +27,34 @@ let private youtubeItemsMapper (item: SearchResult, video: VideoStatistics) =
 let private youtubeContinuationTokensCache =
     createServiceInMemoryCache defaultCacheTimeout
 
-let private bindAsync (af: _ -> Async<_>) (r: Result<_, _>) =
+let private responseBinder (success: SearchListResponse) =
     async {
-        match r with
-        | Ok ok -> return! af (ok)
-        | Error e -> return Error e
-    }
+        let list =
+            [ "statistics" ]
+            |> Repeatable
+            |> youtubeService.Videos.List
 
-let private unwrap (res: Result<Result<_, _>, _>): Result<_, _> =
-    match res with
-    | Ok ok ->
-        match ok with
-        | Ok innerOk -> Ok innerOk
-        | Error e -> Error e
-    | Error e -> Error e
+        let dict =
+            success.Items
+            |> Seq.map (fun x -> (x.Id.VideoId, x))
+            |> Map.ofSeq
+
+        list.Id <- dict |> Seq.map (fun x -> x.Key) |> Repeatable
+
+        let! resp =
+            list.ExecuteAsync()
+            |> Async.AwaitTask
+            |> Async.Catch
+
+        return
+            resp
+            |> Result.ofChoice
+            |> Result.bind (fun ok ->
+                ok.Items
+                |> Seq.toList
+                |> Seq.map (fun video -> youtubeItemsMapper (dict.Item(video.Id), video.Statistics))
+                |> Ok)
+    }
 
 let youTubeSearch (tup: ServiceSearchArgument): Async<ServiceSearchResult> =
     let (offset, inlineQuery, token) = tup
@@ -71,32 +85,5 @@ let youTubeSearch (tup: ServiceSearchArgument): Async<ServiceSearchResult> =
             |> Result.ofChoice
             |> bindAsync (fun success ->
                 youtubeContinuationTokensCache.Set((inlineQuery.Query, offset + pagePerService), success.NextPageToken)
-
-                async {
-                    let list =
-                        [ "statistics" ]
-                        |> Repeatable
-                        |> youtubeService.Videos.List
-
-                    let dict =
-                        success.Items
-                        |> Seq.map (fun x -> (x.Id.VideoId, x))
-                        |> Map.ofSeq
-
-                    list.Id <- dict |> Seq.map (fun x -> x.Key) |> Repeatable
-
-                    let! resp =
-                        list.ExecuteAsync()
-                        |> Async.AwaitTask
-                        |> Async.Catch
-
-                    return
-                        resp
-                        |> Result.ofChoice
-                        |> Result.bind (fun ok ->
-                            ok.Items
-                            |> Seq.toList
-                            |> Seq.map (fun video -> youtubeItemsMapper (dict.Item(video.Id), video.Statistics))
-                            |> Ok)
-                })
+                responseBinder success)
     }
