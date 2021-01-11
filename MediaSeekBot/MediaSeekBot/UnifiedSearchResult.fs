@@ -1,4 +1,4 @@
-﻿namespace TelegramAudioFinder
+﻿namespace MediaSeekBot
 
 type UnifiedSearchResult = {
     ThumbUrl: string option

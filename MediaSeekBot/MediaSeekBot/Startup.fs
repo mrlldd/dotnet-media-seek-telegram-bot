@@ -1,4 +1,4 @@
-﻿module TelegramAudioFinder.Startup
+﻿module MediaSeekBot.Startup
 
 open System
 open Suave
@@ -6,10 +6,10 @@ open Suave.Filters
 open Suave.Operators
 open Suave.Successful
 open Telegram.Bot.Types.Enums
-open TelegramAudioFinder
-open TelegramAudioFinder.Utils
-open TelegramAudioFinder.Restful
-open TelegramAudioFinder.TelegramBot
+open MediaSeekBot
+open MediaSeekBot.Utils
+open MediaSeekBot.Restful
+open MediaSeekBot.TelegramBot
 open Newtonsoft.Json
 
 let telegramEndpoint = "/api/telegram"

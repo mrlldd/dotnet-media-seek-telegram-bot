@@ -1,4 +1,4 @@
-﻿module TelegramAudioFinder.Utils
+﻿module MediaSeekBot.Utils
 
 open System
 open System.Collections.Generic

@@ -1,4 +1,4 @@
-﻿module TelegramAudioFinder.TelegramBot
+﻿module MediaSeekBot.TelegramBot
 
 open System
 open System.Net
@@ -9,10 +9,10 @@ open Successful
 open Telegram.Bot
 open Telegram.Bot.Types
 open Telegram.Bot.Types.InlineQueryResults
-open TelegramAudioFinder.Search.SoundCloud
-open TelegramAudioFinder.Search.YouTube
-open TelegramAudioFinder.Utils
-open TelegramAudioFinder.Services.Utils
+open MediaSeekBot.Search.SoundCloud
+open MediaSeekBot.Search.YouTube
+open MediaSeekBot.Utils
+open MediaSeekBot.Services.Utils
 
 let bot =
     TelegramBotClient(applicationConfig.Telegram.Token)

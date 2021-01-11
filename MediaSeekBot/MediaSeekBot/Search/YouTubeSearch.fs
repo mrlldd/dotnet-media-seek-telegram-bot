@@ -1,12 +1,12 @@
-﻿module TelegramAudioFinder.Search.YouTube
+﻿module MediaSeekBot.Search.YouTube
 
 open Google.Apis.Services
 open Google.Apis.Util
 open Google.Apis.YouTube.v3
 open Google.Apis.YouTube.v3.Data
-open TelegramAudioFinder
-open TelegramAudioFinder.Utils
-open TelegramAudioFinder.Services.Utils
+open MediaSeekBot
+open MediaSeekBot.Utils
+open MediaSeekBot.Services.Utils
 
 let private youtubeService =
     let youTubeConfig = applicationConfig.Services.YouTube

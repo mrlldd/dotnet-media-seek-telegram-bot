@@ -1,10 +1,10 @@
-﻿module TelegramAudioFinder.Services.Utils
+﻿module MediaSeekBot.Services.Utils
 
 open System
 open System.Threading
 open FSharp.Data.Runtime.Caching
 open Telegram.Bot.Types
-open TelegramAudioFinder
+open MediaSeekBot
 open Microsoft.FSharp.Reflection
 
 type Service =

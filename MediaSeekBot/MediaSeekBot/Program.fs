@@ -1,10 +1,10 @@
-﻿module TelegramAudioFinder.Program
+﻿module MediaSeekBot.Program
 
 open System
 open Suave
 open Operators
-open TelegramAudioFinder.Startup
-open TelegramAudioFinder.Utils
+open MediaSeekBot.Startup
+open MediaSeekBot.Utils
 
 
 let isCtrlC (consoleKeyInfo: ConsoleKeyInfo) =

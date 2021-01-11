@@ -1,8 +1,8 @@
-﻿module TelegramAudioFinder.Restful
+﻿module MediaSeekBot.Restful
 
 open System.Text
 open Suave
-open TelegramAudioFinder.Utils
+open MediaSeekBot.Utils
 
 
 let rest handler (req: HttpRequest) =

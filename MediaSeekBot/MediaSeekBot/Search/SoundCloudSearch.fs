@@ -1,9 +1,9 @@
-﻿module TelegramAudioFinder.Search.SoundCloud
+﻿module MediaSeekBot.Search.SoundCloud
 
 open System.Net
-open TelegramAudioFinder
-open TelegramAudioFinder.Utils
-open TelegramAudioFinder.Services.Utils
+open MediaSeekBot
+open MediaSeekBot.Utils
+open MediaSeekBot.Services.Utils
 open FSharp.Data
 open FSharp.Json
 
